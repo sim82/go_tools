@@ -12,6 +12,19 @@
  *  for more details.
  */
 
+/**
+ * A go implementation of a generic phylip multiple alignment loader.
+ *
+ * For now it only supports files in a 'non-interleaved' format, i.e.
+ * without any linebreaks where each line corresponds to exactly one
+ * sequence.
+ * For usage information look into the main function.
+ *
+ * I was more or less just playing around with the idea of reading a
+ * textfile with a channel that returns single lines (see func LineReader)
+ */
+
+
 package main
 
 import ( "fmt"; "bufio"; "os"; "strconv";  )

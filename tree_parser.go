@@ -12,6 +12,19 @@
  *  for more details.
  */
 
+
+/**
+ * A go implementation of a reader for phylogenetic trees in the newick format
+ * (http://evolution.genetics.washington.edu/phylip/newicktree.html)
+ *
+ * For now it should be possible to read *unrooted* standard newick files (= the
+ * top level node must have three children!). It can also read branch-labels and
+ * node labels which will be interpreted as branch support values if possible
+ * 
+ * There is also code for a basic tree writer.
+ * See func main for usage information.
+ */
+
 package main
 
 import (
