@@ -24,7 +24,7 @@ func (cf *CSVFile) GetString(i, j int) string {
 	if col.ColString != nil {
 		return col.ColString[i]
 	} else {
-		panic("not a string column: ", j)
+		panic(fmt.Sprintf("not a string column: %d", j))
 	}
 	panic("unreachable")
 }
@@ -34,7 +34,7 @@ func (cf *CSVFile) GetInt(i, j int) int {
 	if col.ColInt != nil {
 		return col.ColInt[i]
 	} else {
-		panic("not an int column: ", j)
+		panic(fmt.Sprintf("not an int column: %d", j))
 	}
 	panic("unreachable")
 }
@@ -43,9 +43,9 @@ func (cf *CSVFile) GetInt(i, j int) int {
 func (cf *CSVFile) GetDouble(i, j int) float64 {
 	col := cf.Cols[j]
 	if col.ColString != nil {
-		return col.ColString[i]
+		return col.ColDouble[i]
 	} else {
-		panic("not a double column: ", j)
+		panic(fmt.Sprintf("not a double column: %d", j))
 	}
 	panic("unreachable")
 }
@@ -92,13 +92,13 @@ func ReadCSV(name string, cts string) *CSVFile {
 				cf.Cols[i].ColInt[j], e = strconv.Atoi(token)
 				if e != nil {
 					//fmt.Printf( "line: '%s'\n", string(lorig));
-					panic("conversion error from string to int ", i, " ", j, " ", string(token))
+					panic(fmt.Sprintf("conversion error from string to int %d %d %s", i, j, string(token)))
 				}
 			case c.ColDouble != nil:
 				cf.Cols[i].ColDouble[j], e = strconv.Atof64(token)
 				if e != nil {
 					//fmt.Printf( "line: '%s'\n", string(lorig));
-					panic("conversion error from string to double ", i, " ", j, " ", string(token))
+					panic(fmt.Sprintf("conversion error from string to double %d %d %s", i, j, string(token)))
 				}
 			}
 
