@@ -33,55 +33,11 @@ import (
 	"io"
 	"os"
 	"io/ioutil"
+	"tree"
+	"bytes"
+	"gob"
 )
 
-type AData struct {
-	label   string
-	isTip   bool
-	support float
-}
-
-type LN struct {
-	next *LN
-	back *LN
-
-	backLen     float
-	backLabel   string
-	backSupport float
-	data        *AData
-}
-
-
-func CreateLN() *LN {
-	data := &AData{}
-	var ns [3]LN
-	ns[0].next = &ns[1]
-	ns[1].next = &ns[2]
-	ns[2].next = &ns[0]
-	ns[0].data = data
-	ns[1].data = data
-	ns[2].data = data
-
-	return &ns[0]
-
-	//     data := &AData{};
-	//
-	//     n := &LN{&LN{&LN{nil,nil,0,"",0,data}, nil, 0, "", 0, data}, nil, 0, "", 0, data};
-	//     n.next.next.next = n;
-	//
-	//     return n;
-
-
-}
-
-func CreateLeaf(name string) *LN {
-	n := CreateLN()
-
-	n.data.label = name
-	n.data.isTip = true
-
-	return n
-}
 
 type ParserInput interface {
 	// Get the character at an arbitrary position in the
@@ -201,18 +157,18 @@ func parseBranchLabel(pi ParserInput, pos int) (string, int) {
 }
 
 
-func twiddle(n1 *LN, n2 *LN, len float, label string, support float) {
-	n1.back = n2
-	n2.back = n1
-	n1.backLen = len
-	n2.backLen = len
-	n1.backLabel = label
-	n2.backLabel = label
-	n1.backSupport = support
-	n2.backSupport = support
+func twiddle(n1 *tree.LN, n2 *tree.LN, len float, label string, support float) {
+	n1.Back = n2
+	n2.Back = n1
+	n1.BackLen = len
+	n2.BackLen = len
+	n1.BackLabel = label
+	n2.BackLabel = label
+	n1.BackSupport = support
+	n2.BackSupport = support
 }
 
-func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
+func parseInnerNode(pi ParserInput, pos int) (*tree.LN, int) {
 
 	//fmt.Printf( "parse inner node\n" );
 
@@ -224,7 +180,7 @@ func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
 	// consume opening '('
 	pos++
 
-	var nl *LN
+	var nl *tree.LN
 	nl, pos = parseNode(pi, pos)
 
 	var bll float
@@ -246,7 +202,7 @@ func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
 	pos++
 
 	// parse right node + branch length
-	var nr *LN
+	var nr *tree.LN
 	nr, pos = parseNode(pi, pos)
 
 	var blr float
@@ -261,7 +217,7 @@ func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
 		// second comma found: three child nodes == pseudo root
 		pos++
 
-		var nx *LN
+		var nx *tree.LN
 		nx, pos = parseNode(pi, pos)
 
 		var blx float
@@ -279,11 +235,11 @@ func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
 		pos++
 		pos = skipWhitespace(pi, pos)
 
-		n := CreateLN()
+		n := tree.CreateLN()
 
-		twiddle(nl, n.next, bll, labell, n.data.support)
-		twiddle(nr, n.next.next, blr, labelr, n.data.support)
-		twiddle(nx, n, blx, labelx, n.data.support)
+		twiddle(nl, n.Next, bll, labell, n.Data.Support)
+		twiddle(nr, n.Next.Next, blr, labelr, n.Data.Support)
+		twiddle(nx, n, blx, labelx, n.Data.Support)
 
 		//      fmt.Printf( "twiddle root\n" );
 
@@ -318,12 +274,12 @@ func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
 			support = -1
 		}
 
-		n := CreateLN()
-		n.data.support = support
+		n := tree.CreateLN()
+		n.Data.Support = support
 		//n.data.setNodeLabel(nodeLabel);
 
-		twiddle(nl, n.next, bll, labell, support)
-		twiddle(nr, n.next.next, blr, labelr, support)
+		twiddle(nl, n.Next, bll, labell, support)
+		twiddle(nr, n.Next.Next, blr, labelr, support)
 
 		return n, pos
 
@@ -335,7 +291,7 @@ func parseInnerNode(pi ParserInput, pos int) (*LN, int) {
 	panic("unreachable")
 }
 
-func parseLeaf(pi ParserInput, pos int) (*LN, int) {
+func parseLeaf(pi ParserInput, pos int) (*tree.LN, int) {
 	pos = skipWhitespace(pi, pos)
 
 	brLen := findEndOfBranch(pi, pos)
@@ -343,16 +299,16 @@ func parseLeaf(pi ParserInput, pos int) (*LN, int) {
 	ld := pi.Substring(pos, brLen)
 	pos = brLen
 
-	node := CreateLeaf(ld)
+	node := tree.CreateLeaf(ld)
 
 	//fmt.Printf( "leaf parsed: %s\n", ld );
 	return node, pos
 }
 
-func parseNode(pi ParserInput, pos int) (*LN, int) {
+func parseNode(pi ParserInput, pos int) (*tree.LN, int) {
 	pos = skipWhitespace(pi, pos)
 
-	var n *LN
+	var n *tree.LN
 
 	if pi.CharAt(pos) == '(' {
 		n, pos = parseInnerNode(pi, pos)
@@ -362,10 +318,10 @@ func parseNode(pi ParserInput, pos int) (*LN, int) {
 	return n, pos
 }
 
-func Parse(pi ParserInput, pos int) (*LN, int) {
+func Parse(pi ParserInput, pos int) (*tree.LN, int) {
 	pos = skipWhitespace(pi, pos)
 
-	var n *LN
+	var n *tree.LN
 	n, pos = parseNode(pi, pos)
 
 	return n, pos
@@ -386,43 +342,43 @@ func (self StringPI) Substring(start, end int) string {
 }
 
 
-func printTreeInner(node *LN, w io.Writer, root bool) {
-	if node.data.isTip {
+func printTreeInner(node *tree.LN, w io.Writer, root bool) {
+	if node.Data.IsTip {
 		//s.printf("%s:%G", node.data.getTipName(), node.backLen);
-		io.WriteString(w, fmt.Sprintf("%s:%8.20f", node.data.label, node.backLen))
+		io.WriteString(w, fmt.Sprintf("%s:%8.20f", node.Data.Label, node.BackLen))
 	} else {
 		w.Write([]byte{'('})
-		printTreeInner(node.next.back, w, false)
+		printTreeInner(node.Next.Back, w, false)
 		w.Write([]byte{','})
-		printTreeInner(node.next.next.back, w, false)
+		printTreeInner(node.Next.Next.Back, w, false)
 
 		if root {
 			w.Write([]byte{','})
-			printTreeInner(node.back, w, false)
+			printTreeInner(node.Back, w, false)
 			w.Write([]byte{')', ';'})
 		} else {
 			//s.printf("):%G", node.backLen );
-			io.WriteString( w, fmt.Sprintf("):%8.20f", node.backLen))
+			io.WriteString( w, fmt.Sprintf("):%8.20f", node.BackLen))
 		}
 	}
 }
 
-func PrintTree(node *LN, w io.Writer) {
+func PrintTree(node *tree.LN, w io.Writer) {
 
 
 	//node = LN.getTowardsTree(node);
-	if node.data.isTip {
-		if node.back != nil {
-			node = node.back
-		} else if node.next.back != nil {
-			node = node.next.back
-		} else if node.next.next.back != nil {
-			node = node.next.next.back
+	if node.Data.IsTip {
+		if node.Back != nil {
+			node = node.Back
+		} else if node.Next.Back != nil {
+			node = node.Next.Back
+		} else if node.Next.Next.Back != nil {
+			node = node.Next.Next.Back
 		} else {
 			panic("can not print single unlinked node")
 		}
 
-		if node.data.isTip {
+		if node.Data.IsTip {
 			panic("could not find non-tip node for writing the three (this is a braindead limitation of this tree printer!)")
 		}
 	}
@@ -438,6 +394,25 @@ func main() {
 
 	PrintTree(n, os.Stdout)
 	fmt.Println()
-	PrintTree(n.back, os.Stdout)
+	PrintTree(n.Back, os.Stdout)
 	fmt.Println()
+	
+
+	i := make([]int, 4)
+	i[0] = 72
+	i[1] = 105
+	i[2] = 32
+	i[3] = 9731     // Unicode snowman
+	var s string = string(i)
+	fmt.Printf("%s has length %d bytes.\n", s, len(s)) 
+	
+	
+	buf := bytes.NewBuffer(nil)
+    
+    
+    
+	enc := gob.NewEncoder( buf )
+    enc.Encode( n )
+    
+    os.Stdout.Write( buf.Bytes() )
 }

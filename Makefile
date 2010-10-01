@@ -1,8 +1,10 @@
 EXEC = tree_parser csvfile
-LIB = common.6
+LIB = common.6 tree.6
+
+tree_parser.6: tree.6
 
 %.6: %.go
-	6g $(<)
+	6g -I. $(<)
 
 %: %.6 $(LIB)
 	6l -L. -o $(@) $(<)
